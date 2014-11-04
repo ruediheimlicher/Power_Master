@@ -335,7 +335,8 @@ int main (void)
                //outbuffer[0] = '\0';
                spiloop++;
                //lcd_gotoxy(0,1);
-               
+               SPI_PORT &= ~(1<<SPI_CS); // CS LO, Start, Slave soll erstes Byte laden
+
               SPI_PORT &= ~(1<<SPI_SS); // SS LO, Start, Slave soll erstes Byte laden
                _delay_us(1);
                
@@ -383,6 +384,7 @@ int main (void)
                _delay_us(5);
                
                SPI_PORT |= (1<<SPI_SS); // SS HI End, Slave soll  Byte-Zähler zurücksetzen
+               SPI_PORT |= (1<<SPI_CS); // CS HI End, Slave soll  Byte-Zähler zurücksetzen
                //OSZI_A_HI;
                
                //lcd_gotoxy(12,1);
