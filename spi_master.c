@@ -52,17 +52,20 @@ void spi_master_init (void)
     #define SPI_SCK      5
 
     */
+   
 	SPI_DDR = (1<<SPI_SS) | (1<<SPI_MOSI) | (1<<SPI_SCK);		// setze SCK,MOSI,PB0 (SS) als Ausgang
 	SPI_DDR &= ~(1<<SPI_MISO);							// setze MISO als Eingang
-	SPI_PORT = (1<<SPI_SCK) | (1<<SPI_SS);				// SCK und PB0 high (ist mit SS am Slave verbunden)
+	//SPI_PORT = (1<<SPI_SCK) | (1<<SPI_SS);				// SCK und PB0 high (ist mit SS am Slave verbunden)
 	//SPCR = (1<<SPE) | (1<<MSTR) | (1<<SPR0);	//Aktivierung des SPI, Master, Taktrate fck/16
 	
    SPI_DDR |= (1<<SPI_CS); // Chip select
-   SPI_PORT |= (1<<SPI_CS); // HI
+   SPI_PORT &= ~(1<<SPI_CS); // LO, invertiert im Optokoppler HI
    
    SPCR |= (1<<MSTR);// Set as Master
-  //SPCR |= (1<<SPR1);// divided clock by 64, 125 kHz
-   SPCR |= (1<<SPR0);
+   
+   SPCR |= (1<<SPR0);               // div 16 SPI2X: div 8
+   //SPCR |= (1<<SPR1);               // div 64 SPI2X: div 32
+   //SPCR |= (1<<SPR1) | (1<<SPR0);   // div 128 SPI2X: div 64
    //SPCR |= (1<<SPI2X);
    SPCR |= (1<<SPE); // Enable SPI
    status = SPSR;								//Status loeschen
@@ -76,7 +79,7 @@ unsigned char SPI_get_put_char(uint8_t cData)
   // while(!(SPSR & (1<<SPIF)))
       while(!(SPSR & (1<<SPIF)) && spiwaitcounter < WHILEMAX)
       {
-         spiwaitcounter++;
+         //spiwaitcounter++;
       }
       ;
    /* Return data register */

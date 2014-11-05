@@ -31,8 +31,6 @@
 #define tag_data_size 32
 #define tag_start_adresse 0
 
-#define TAGPLANBREITE		0x40	// 64 Bytes, 2 page im EEPROM
-#define RAUMPLANBREITE		0x200	// 512 Bytes
 
 /** defines the data direction (reading from I2C device) in i2c_start(),i2c_rep_start() */
 #define I2C_READ    1

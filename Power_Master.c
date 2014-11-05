@@ -267,8 +267,8 @@ ISR(PCINT2_vect)
       }
       
    }
-   spi_txbuffer[0] = (rot_eingang_A & 0x00FF);
-   spi_txbuffer[1] = ((rot_eingang_A & 0xFF00)>>8);
+   spi_txbuffer[2] = (rot_eingang_A & 0x00FF);
+   spi_txbuffer[3] = ((rot_eingang_A & 0xFF00)>>8);
     //OSZI_A_HI;
 }
 
@@ -289,7 +289,6 @@ int main (void)
    sei();
    i2c_init();
    spi_master_init();
-   volatile char* text = "0WXYZ*";
    uint16_t spiloop =0;
    uint8_t twiloop=0;
    //DDRB |=(1<<0);
@@ -323,7 +322,7 @@ int main (void)
             loopCount1=0;
 
             // SPI
-            if ((twiloop)==2)
+            if ((twiloop)==3)
             {
                twiloop=0;
                //OSZI_A_LO;
@@ -335,41 +334,34 @@ int main (void)
                //outbuffer[0] = '\0';
                spiloop++;
                //lcd_gotoxy(0,1);
-               SPI_PORT &= ~(1<<SPI_CS); // CS LO, Start, Slave soll erstes Byte laden
-
-              SPI_PORT &= ~(1<<SPI_SS); // SS LO, Start, Slave soll erstes Byte laden
+               spi_txbuffer[0]= '$';
+               spi_txbuffer[1]= 0x27;
+               
+               SPI_PORT |=  (1<<SPI_CS); // CS LO, Start, Slave soll erstes Byte laden
+               _delay_us(1);
+               outindex=0;
+              
+               SPI_PORT &= ~(1<<SPI_SS); // SS LO, Start, Slave soll erstes Byte laden
                _delay_us(1);
                
                //PORTB &= ~(1<<0);
                for (outindex=0;outindex < SPI_BUFFERSIZE;outindex++)
+               //for (outindex=0;outindex < 4;outindex++)
                {
                   OSZI_A_LO;
                   //SPI_PORT &= ~(1<<SPI_SS); // SS LO, Start, Slave soll erstes Byte laden
-
-              //    spi_rxbuffer[outindex] = SPI_get_put_char(spi_txbuffer[outindex]);
-                  //spi_txbuffer[outindex] = out[arraypos][outindex];
-                  
-             //     spi_txbuffer[outindex] = out[arraypos][outindex];
-                  
-                  // Ausgabe der Daten fuer Output
-                  //lcd_putc(spi_txbuffer[outindex]);
-                  //lcd_puthex(spi_txbuffer[outindex]);
+                  _delay_us(2);
                   
                   SPDR = spi_txbuffer[outindex];
                   
                   while(!(SPSR & (1<<SPIF)) && spiwaitcounter < WHILEMAX)
                   {
-                     spiwaitcounter++;
+                    // spiwaitcounter++;
                   }
                   
-                  //incoming = SPDR;
-                  //incoming = outindex;
                   spi_rxbuffer[outindex] = SPDR;
-                  //_delay_ms(2);
-                  //outbuffer[outindex] = text[outindex];
                   spiwaitcounter=0;
-                  //_delay_us(11);
-                  
+                  _delay_us(1);
                   //SPI_PORT |= (1<<SPI_SS); // SS HI End, Slave soll  Byte-Zähler zurücksetzen
                   OSZI_A_HI;
                }
@@ -384,14 +376,14 @@ int main (void)
                _delay_us(5);
                
                SPI_PORT |= (1<<SPI_SS); // SS HI End, Slave soll  Byte-Zähler zurücksetzen
-               SPI_PORT |= (1<<SPI_CS); // CS HI End, Slave soll  Byte-Zähler zurücksetzen
+               SPI_PORT &= ~(1<<SPI_CS); // CS HI End, Slave soll  Byte-Zähler zurücksetzen
                //OSZI_A_HI;
                
-               //lcd_gotoxy(12,1);
-               //lcd_puts("in");
-               //lcd_gotoxy(12,1);
-               //lcd_puts("  ");
                lcd_gotoxy(0,0);
+               lcd_puts("in");
+               //lcd_gotoxy(12,1);
+               lcd_puts("  ");
+               //lcd_gotoxy(0,0);
                lcd_puthex(spi_rxbuffer[0]);
                lcd_putc(' ');
                lcd_puthex(spi_rxbuffer[1]);
