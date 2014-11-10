@@ -28,6 +28,7 @@ void initDAC(void)
 
 void setDAC(void)
 {
+   // data ausgeben an DAC
    uint16_t spiwaitcounter = WHILEMAX; // 5 ms
    int32_t tmpDAC=0;
    uint8_t dummy =0;
