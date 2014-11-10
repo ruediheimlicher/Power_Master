@@ -22,7 +22,7 @@
 #define SCL_CLOCK  4000000L
 
 
-#define WHILEMAX 0xFFFF // Wartezeit in while-Schleife : 5 ms
+//#define WHILEMAX 0xFFFF // Wartezeit in while-Schleife : 5 ms
 
 #define STARTERR			0xA1
 #define ADDRESSERR		0xA2

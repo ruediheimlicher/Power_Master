@@ -9,7 +9,7 @@
 #ifndef AVR_Starter_spi_master_h
 #define AVR_Starter_spi_master_h
 
-#define SPI_BUFFERSIZE 8
+//#define SPI_BUFFERSIZE 8
 
 
 #define SPI_PORT     PORTB

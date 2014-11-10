@@ -3,6 +3,9 @@
  * defines
  */
 
+#define SPI_BUFFERSIZE 8
+#define WHILEMAX 0xFFFF // Wartezeit in while-Schleife : 5 ms
+
 #define LOOPLED_PORT	PORTD
 #define LOOPLED_DDR	DDRD
 #define LOOPLED_PIN	4

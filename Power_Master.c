@@ -19,6 +19,9 @@
 #include "AVR_Starter.h"
 #include "lcd.c"
 #include "adc.c"
+
+#include "dac.c"
+
 #include "utils.c"
 #include "slaves.c"
 #include "spi_master.c"
