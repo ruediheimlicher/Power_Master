@@ -92,8 +92,8 @@ volatile uint16_t rot_eingang_plus=0x00;
 volatile uint16_t rot_eingang_A=0x00;
 volatile uint16_t rot_count_A=0x00;
 volatile uint16_t rot_loopcount_L=0x00;
-volatile uint16_t rot_loopcount_H=0x00;
-
+volatile uint16_t rot_loopcount_H=0x0000;
+volatile uint16_t rot_control=0x0000;
 volatile uint8_t old_rot_pin=1;
 volatile uint8_t new_rot_pin=1;
 volatile uint8_t akt_rot_pin=1;
@@ -229,14 +229,22 @@ ISR(PCINT2_vect)
    
    akt_rot_pin = new_rot_pin ^ old_rot_pin;
    
-   uint16_t deltaA=100;
+   uint16_t deltaA=0x400;
    
-   if (rot_count_A > 0x02)
+   if (rot_pin1 == 0)
    {
-      deltaA = 100;
+      rot_control++;
+      if (rot_loopcount_H  > 0x04)
+      {
+         
+         deltaA = 0x40;
+         
+      }
+      rot_loopcount_H=0;
    }
+   //rot_control = rot_loopcount_H;
    //deltaA = 10;
-   rot_count_A=0;
+  
    
   if ((rot_pin0==1) && (rot_pin1 == 0))
    {
@@ -291,15 +299,15 @@ ISR (TIMER0_OVF_vect)
 {
    rot_loopcount_L++;
    
-   if (rot_loopcount_L >= ROT_L)
+   if (rot_loopcount_L >= UPDATE_COUNT)
    {
       //OSZI_A_TOGG;
       updateOK =1;
       rot_loopcount_L = 0;
       
-      if (rot_loopcount_H < ROT_H) // hochzaehlen bis max
+      if (rot_loopcount_H < ROT_HI) // hochzaehlen bis max
       {
-         rot_loopcount_H++;
+         rot_loopcount_H ++;
       }
    }
    
@@ -402,8 +410,8 @@ int main (void)
                lcd_puthex(spi_txbuffer[3]);
                lcd_putc(' ');
 
-               lcd_puthex(rot_loopcount_H);
-               
+              // lcd_puthex(rot_loopcount_H);
+              // lcd_puthex(rot_control);
                //_delay_us(20);
       
                

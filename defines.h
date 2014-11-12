@@ -6,8 +6,8 @@
 #define SPI_BUFFERSIZE 8
 #define WHILEMAX 0xFFFF // Wartezeit in while-Schleife : 5 ms
 
-#define ROT_L  0x08
-#define ROT_H  0xFF
+#define UPDATE_COUNT  0x08
+#define ROT_HI  0xFF
 
 #define LOOPLED_PORT	PORTD
 #define LOOPLED_DDR	DDRD
