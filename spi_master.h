@@ -27,6 +27,7 @@
 volatile uint8_t spi_rxbuffer[SPI_BUFFERSIZE];
 volatile uint8_t spi_txbuffer[SPI_BUFFERSIZE];
 
+void setSPI_Teensy(void);
 unsigned char SPI_get_put_char(uint8_t cData);
 
 #endif

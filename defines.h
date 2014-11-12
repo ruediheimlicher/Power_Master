@@ -6,6 +6,9 @@
 #define SPI_BUFFERSIZE 8
 #define WHILEMAX 0xFFFF // Wartezeit in while-Schleife : 5 ms
 
+#define ROT_L  0x08
+#define ROT_H  0xFF
+
 #define LOOPLED_PORT	PORTD
 #define LOOPLED_DDR	DDRD
 #define LOOPLED_PIN	4
@@ -35,8 +38,8 @@
 #define OSZIPORT           PORTB
 #define OSZIPORTDDR        DDRB
 #define OSZIPORTPIN        PINB
-#define OSZI_PULS_A        0
-#define OSZI_PULS_B        1
+#define OSZI_PULS_A        6
+#define OSZI_PULS_B        7
 
 #define OSZI_A_LO OSZIPORT &= ~(1<<OSZI_PULS_A)
 #define OSZI_A_HI OSZIPORT |= (1<<OSZI_PULS_A)

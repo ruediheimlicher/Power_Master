@@ -17,6 +17,9 @@ unsigned char status = 0;
 volatile unsigned char count;
 uint16_t spiwaitcounter = WHILEMAX; // 5 ms
 
+extern volatile uint8_t arraypos;
+
+
 void timer1 (void);
 void master_init (void);
 void master_transmit (unsigned char data);
@@ -69,6 +72,55 @@ void spi_master_init (void)
    //SPCR |= (1<<SPI2X);
    SPCR |= (1<<SPE); // Enable SPI
    status = SPSR;								//Status loeschen
+}
+
+void setSPI_Teensy(void)
+{
+   uint8_t outindex=0;
+   SPI_PORT |=  (1<<SPI_CS); // CS LO, Start, Slave soll erstes Byte laden
+   _delay_us(1);
+   
+   
+   SPI_PORT &= ~(1<<SPI_SS); // SS LO, Start, Slave soll erstes Byte laden
+   _delay_us(1);
+   
+   //PORTB &= ~(1<<0);
+   for (outindex=0;outindex < SPI_BUFFERSIZE;outindex++)
+      //for (outindex=0;outindex < 4;outindex++)
+   {
+      //OSZI_A_LO;
+      //SPI_PORT &= ~(1<<SPI_SS); // SS LO, Start, Slave soll erstes Byte laden
+      _delay_us(1);
+      
+      SPDR = spi_txbuffer[outindex];
+      
+      while(!(SPSR & (1<<SPIF)) && spiwaitcounter < WHILEMAX)
+      {
+         // spiwaitcounter++;
+      }
+      
+      spi_rxbuffer[outindex] = SPDR;
+      spiwaitcounter=0;
+      _delay_us(1);
+      //SPI_PORT |= (1<<SPI_SS); // SS HI End, Slave soll  Byte-ZŠhler zurŸcksetzen
+      //OSZI_A_HI;
+   }
+   //PORTB |=(1<<0);
+   arraypos++;
+   arraypos &= 0x07;
+   //spi_rxbuffer[outindex] = '\0';
+   //outbuffer[outindex] = '\0';
+   //char rest = SPDR;
+   
+   // wichtig
+   _delay_us(5);
+   
+   SPI_PORT |= (1<<SPI_SS); // SS HI End, Slave soll  Byte-ZŠhler zurŸcksetzen
+   _delay_us(5);
+   
+   SPI_PORT &= ~(1<<SPI_CS); // CS HI End, Slave soll  Byte-ZŠhler zurŸcksetzen
+   //OSZI_A_HI;
+
 }
 
 unsigned char SPI_get_put_char(uint8_t cData)

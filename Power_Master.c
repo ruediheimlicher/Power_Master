@@ -57,9 +57,14 @@ uint16_t Tastenprellen=0x01F;
 // TWI
 static volatile uint8_t Write_Err;
 static volatile uint8_t Read_Err;
-static volatile uint8_t EEPROM_Err;
+
+// Update durchfuehren
+volatile uint8_t updateOK=0;
 
 // SPI
+
+
+
 volatile uint8_t data;
 
 volatile uint8_t textpos=0;
@@ -86,28 +91,15 @@ volatile uint8_t twi_Stat_count=0;	//	Anzahl Resets nach erfolglosen TWI-Aufrufe
 volatile uint16_t rot_eingang_plus=0x00;
 volatile uint16_t rot_eingang_A=0x00;
 volatile uint16_t rot_count_A=0x00;
-volatile uint16_t rot_loopcount_A=0x00;
+volatile uint16_t rot_loopcount_L=0x00;
+volatile uint16_t rot_loopcount_H=0x00;
 
 volatile uint8_t old_rot_pin=1;
 volatile uint8_t new_rot_pin=1;
 volatile uint8_t akt_rot_pin=1;
 volatile uint8_t rot_changecount=0;
 
-// OSZI
-#define OSZIPORT           PORTB
-#define OSZIPORTDDR        DDRB
-#define OSZIPORTPIN        PINB
-#define OSZI_PULS_A        0
-#define OSZI_PULS_B        1
 
-#define OSZI_A_LO OSZIPORT &= ~(1<<OSZI_PULS_A)
-#define OSZI_A_HI OSZIPORT |= (1<<OSZI_PULS_A)
-#define OSZI_A_TOGG OSZIPORT ^= (1<<OSZI_PULS_A)
-
-
-#define OSZI_B_LO OSZIPORT &= ~(1<<OSZI_PULS_B)
-#define OSZI_B_HI OSZIPORT |= (1<<OSZI_PULS_B)
-#define OSZI_B_TOGG OSZIPORT ^= (1<<OSZI_PULS_B)
 
 // SPI
 volatile char incoming=0;
@@ -231,17 +223,17 @@ ISR(PCINT2_vect)
    //OSZI_A_LO;
    
    uint8_t rot_pin0 = ROTARY_PIN & 0x01; //Eingang 0
-   
    uint8_t rot_pin1 = (ROTARY_PIN & 0x02); //Eingang 1
-   
    
    new_rot_pin = ROTARY_PIN & 0x02;
    
    akt_rot_pin = new_rot_pin ^ old_rot_pin;
-   uint8_t deltaA=20;
-   if (rot_count_A > 0x5)
+   
+   uint16_t deltaA=100;
+   
+   if (rot_count_A > 0x02)
    {
-      deltaA = 1;
+      deltaA = 100;
    }
    //deltaA = 10;
    rot_count_A=0;
@@ -268,12 +260,51 @@ ISR(PCINT2_vect)
       {
          rot_eingang_A = 0;
       }
-      
    }
    spi_txbuffer[2] = (rot_eingang_A & 0x00FF);
    spi_txbuffer[3] = ((rot_eingang_A & 0xFF00)>>8);
     //OSZI_A_HI;
 }
+
+void timer0 (void) // Grundtakt fuer Stoppuhren usw.
+{
+   // Timer fuer Exp
+   TCCR0B |= (1<<CS01);						// clock	/8
+   //TCCR0B |= (1<<CS01)|(1<<CS02);			// clock	/64
+   //TCCR0B |= (1<<CS02)| (1<<CS02);			// clock	/256
+   //TCCR0 |= (1<<CS00)|(1<<CS02);			// clock /1024
+   
+   //TCCR0B |= (1 << CS02);//
+   TCCR0B |= (1 << CS00);
+   
+   TCCR0B |= (1 << CS10); // Set up timer
+   
+   OCR0A = 0x02;
+   
+   //TIFR |= (1<<TOV0);							//Clear TOV0 Timer/Counter Overflow Flag. clear pending interrupts
+   TIMSK0 |= (1<<TOIE0);							//Overflow Interrupt aktivieren
+   TCNT0 = 0;					//Rücksetzen des Timers
+}
+
+#pragma mark TIMER0_OVF
+ISR (TIMER0_OVF_vect)
+{
+   rot_loopcount_L++;
+   
+   if (rot_loopcount_L >= ROT_L)
+   {
+      //OSZI_A_TOGG;
+      updateOK =1;
+      rot_loopcount_L = 0;
+      
+      if (rot_loopcount_H < ROT_H) // hochzaehlen bis max
+      {
+         rot_loopcount_H++;
+      }
+   }
+   
+}
+
 
 int main (void)
 {
@@ -292,100 +323,95 @@ int main (void)
    sei();
    i2c_init();
    spi_master_init();
+   
+   dac_init();
+   
    uint16_t spiloop =0;
    uint8_t twiloop=0;
    //DDRB |=(1<<0);
    device_init();
+   
+   timer0();
 #pragma mark while
 	while (1) 
 	{
-		
+		//OSZI_A_TOGG;
+      
+      if (updateOK ==1)
+      {
+         OSZI_A_TOGG;
+         updateOK = 0;
+         spiloop++;
+         if (spiloop>0x0F)
+         {
+            spiloop=0;
+         setSPI_Teensy();
+         }
+         
+         //_delay_us(10);
+         setDAC();
+      }
+      
 		loopCount0 ++;
 		//_delay_ms(2);
 		
-		if (loopCount0 >=0xFFFF)
+		if (loopCount0 >=0x00FF)
 		{
 			//OSZI_A_LO;
 			//LOOPLED_PORT ^= (1<<LOOPLED_PIN);
          
 			loopCount1++;
-         rot_loopcount_A++;
+         //rot_loopcount_L++;
          
-			if (rot_loopcount_A > 0xFF)
+			//if (rot_loopcount_L > 0xFF)
          {
-            rot_count_A++;
-            rot_loopcount_A=0;
+            //rot_count_A++;
+            //rot_loopcount_L=0;
          }
          //OSZI_A_HI;
          
          
-			if ((loopCount1 >0xFFF0) )
+			if ((loopCount1 >0x00F0) )
 			{
             LOOPLED_PORT ^= (1<<LOOPLED_PIN);
             loopCount1=0;
 
             // SPI
-            if ((twiloop)==3)
+            if ((twiloop)==1)
             {
                twiloop=0;
                //OSZI_A_LO;
                
                //_delay_us(100);
-               uint8_t outindex=0;
                textpos=0;
                inbuffer[0] = '\0';
                //outbuffer[0] = '\0';
-               spiloop++;
+               //spiloop++;
                //lcd_gotoxy(0,1);
                spi_txbuffer[0]= '$';
                spi_txbuffer[1]= 0x27;
                
-               SPI_PORT |=  (1<<SPI_CS); // CS LO, Start, Slave soll erstes Byte laden
-               _delay_us(1);
-               outindex=0;
-              
-               SPI_PORT &= ~(1<<SPI_SS); // SS LO, Start, Slave soll erstes Byte laden
-               _delay_us(1);
+           //    setSPI_Teensy();
                
-               //PORTB &= ~(1<<0);
-               for (outindex=0;outindex < SPI_BUFFERSIZE;outindex++)
-               //for (outindex=0;outindex < 4;outindex++)
-               {
-                  OSZI_A_LO;
-                  //SPI_PORT &= ~(1<<SPI_SS); // SS LO, Start, Slave soll erstes Byte laden
-                  _delay_us(2);
-                  
-                  SPDR = spi_txbuffer[outindex];
-                  
-                  while(!(SPSR & (1<<SPIF)) && spiwaitcounter < WHILEMAX)
-                  {
-                    // spiwaitcounter++;
-                  }
-                  
-                  spi_rxbuffer[outindex] = SPDR;
-                  spiwaitcounter=0;
-                  _delay_us(1);
-                  //SPI_PORT |= (1<<SPI_SS); // SS HI End, Slave soll  Byte-Zähler zurücksetzen
-                  OSZI_A_HI;
-               }
-               //PORTB |=(1<<0);
-               arraypos++;
-               arraypos &= 0x07;
-               //spi_rxbuffer[outindex] = '\0';
-               //outbuffer[outindex] = '\0';
-               //char rest = SPDR;
+           //    _delay_us(2);
+           //    setDAC();
                
-               // wichtig
-               _delay_us(5);
                
-               SPI_PORT |= (1<<SPI_SS); // SS HI End, Slave soll  Byte-Zähler zurücksetzen
-               SPI_PORT &= ~(1<<SPI_CS); // CS HI End, Slave soll  Byte-Zähler zurücksetzen
-               //OSZI_A_HI;
+               lcd_gotoxy(0,1);
+               lcd_puthex(spi_txbuffer[2]);
+               lcd_puthex(spi_txbuffer[3]);
+               lcd_putc(' ');
+
+               lcd_puthex(rot_loopcount_H);
+               
+               //_delay_us(20);
+      
+               
                
                lcd_gotoxy(0,0);
                lcd_puts("in");
                //lcd_gotoxy(12,1);
-               lcd_puts("  ");
+               lcd_putc(' ');
                //lcd_gotoxy(0,0);
                lcd_puthex(spi_rxbuffer[0]);
                lcd_putc(' ');
@@ -413,14 +439,16 @@ int main (void)
             // TWI
 				{
                twiloop++;
+               
+               /*
                lcd_gotoxy(8,1);
-               lcd_puts(" EA:");
+               lcd_puts("EA:");
                //lcd_puthex((rot_eingang_A & 0xFF00)>>8);
                
                lcd_putint16((rot_eingang_A));
                 //txbuffer[0]=0;
                //txbuffer[1]=0;
-
+                */
 			}
 
 			}
