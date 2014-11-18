@@ -725,7 +725,7 @@ void jobGetValues(void)
 
 double GetPowerIn(void)
 {
-   return GetADC(4) * PwrInFac;
+   return √º(4) * PwrInFac;
 }
 
 void InitScales(void)

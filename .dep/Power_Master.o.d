@@ -19,7 +19,7 @@ Power_Master.o: Power_Master.c \
  /usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/../../../../avr/include/stdlib.h \
  /usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/include/stddef.h \
  /usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/../../../../avr/include/avr/wdt.h \
- lcd.c lcd.h adc.c adc.h dac.c dac.h \
+ lcd.c lcd.h adc.c adc.h adc_dac.c adc_dac.h \
  /usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/../../../../avr/include/stdio.h \
  /usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/include/stdarg.h \
  defines.h utils.c \
@@ -81,9 +81,9 @@ adc.c:
 
 adc.h:
 
-dac.c:
+adc_dac.c:
 
-dac.h:
+adc_dac.h:
 
 /usr/local/CrossPack-AVR-20130212/lib/gcc/avr/4.6.2/../../../../avr/include/stdio.h:
 

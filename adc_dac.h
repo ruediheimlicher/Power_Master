@@ -23,8 +23,8 @@
 
 
 
-
-#define SOFT_CS       2
+#define SOFT_ADC_CS       1
+#define SOFT_DAC_CS       2
 
 #define SOFT_SCK      3
 #define SOFT_MOSI     4
@@ -38,10 +38,14 @@
 
 #define SOFT_SPI_PORT   PORTC
 #define SOFT_SPI_DDR    DDRC
+#define SOFT_SPI_PIN    PINC
 
 
-#define CS_HI        SOFT_SPI_PORT |= (1<<SOFT_CS)
-#define CS_LO        SOFT_SPI_PORT &= ~(1<<SOFT_CS)
+#define ADC_CS_HI        SOFT_SPI_PORT |= (1<<SOFT_ADC_CS)
+#define ADC_CS_LO        SOFT_SPI_PORT &= ~(1<<SOFT_ADC_CS)
+
+#define DAC_CS_HI        SOFT_SPI_PORT |= (1<<SOFT_DAC_CS)
+#define DAC_CS_LO        SOFT_SPI_PORT &= ~(1<<SOFT_DAC_CS)
 
 #define SCL_HI       SOFT_SPI_PORT |= (1<<SOFT_SCK)
 #define SCL_LO       SOFT_SPI_PORT &= ~(1<<SOFT_SCK)
