@@ -20,7 +20,7 @@
 #include "lcd.c"
 #include "adc.c"
 
-#include "dac.c"
+#include "adc_dac.c"
 
 #include "utils.c"
 #include "slaves.c"
@@ -99,6 +99,9 @@ volatile uint8_t new_rot_pin=1;
 volatile uint8_t akt_rot_pin=1;
 volatile uint8_t rot_changecount=0;
 
+volatile uint16_t disp_loopcount_L=0x00;
+
+
 
 
 // SPI
@@ -106,6 +109,11 @@ volatile char incoming=0;
 volatile uint8_t outcounter=0;
 extern volatile uint8_t spi_rxbuffer[SPI_BUFFERSIZE];
 extern volatile uint8_t spi_txbuffer[SPI_BUFFERSIZE];
+
+volatile uint8_t adc_H=0;
+volatile uint8_t adc_L=0;
+volatile uint8_t adc_in[2]= {};
+
 
 //volatile uint8_t out[8] = {'H','e','l','l','o',' ',' ',' '};
 volatile uint8_t out[8][8] ={
@@ -229,15 +237,15 @@ ISR(PCINT2_vect)
    
    akt_rot_pin = new_rot_pin ^ old_rot_pin;
    
-   uint16_t deltaA=0x400;
+   uint16_t deltaA=0x800;
    
    if (rot_pin1 == 0)
    {
       rot_control++;
-      if (rot_loopcount_H  > 0x04)
+      if (rot_loopcount_H  > 0x0F)
       {
          
-         deltaA = 0x40;
+         deltaA = 0x80;
          
       }
       rot_loopcount_H=0;
@@ -282,10 +290,9 @@ void timer0 (void) // Grundtakt fuer Stoppuhren usw.
    //TCCR0B |= (1<<CS02)| (1<<CS02);			// clock	/256
    //TCCR0 |= (1<<CS00)|(1<<CS02);			// clock /1024
    
-   //TCCR0B |= (1 << CS02);//
-   TCCR0B |= (1 << CS00);
+   //TCCR0B |= (1 << CS02);// /256
+   //TCCR0B |= (1 << CS00); // no prescaling
    
-   TCCR0B |= (1 << CS10); // Set up timer
    
    OCR0A = 0x02;
    
@@ -302,7 +309,8 @@ ISR (TIMER0_OVF_vect)
    if (rot_loopcount_L >= UPDATE_COUNT)
    {
       //OSZI_A_TOGG;
-      updateOK =1;
+      //updateOK =1;
+      updateOK |= (1<<UPDATE_MEAS);
       rot_loopcount_L = 0;
       
       if (rot_loopcount_H < ROT_HI) // hochzaehlen bis max
@@ -311,11 +319,20 @@ ISR (TIMER0_OVF_vect)
       }
    }
    
+   disp_loopcount_L++;
+   if (disp_loopcount_L > 0x8FF)
+   {
+      updateOK |= (1<<UPDATE_DISP);
+      disp_loopcount_L=0;
+   }
+
+   
 }
 
 
 int main (void)
 {
+
 	device_init();
 	
 	lcd_initialize(LCD_FUNCTION_8x2, LCD_CMD_ENTRY_INC, LCD_CMD_ON);
@@ -345,20 +362,62 @@ int main (void)
 	{
 		//OSZI_A_TOGG;
       
-      if (updateOK ==1)
+      //if (updateOK ==1)
+      if (updateOK & (1<<UPDATE_MEAS))
       {
-         OSZI_A_TOGG;
-         updateOK = 0;
+         //OSZI_A_TOGG;
+         updateOK &= ~(1<<UPDATE_MEAS);
+         //updateOK = 0;
+         
+         
+         
          spiloop++;
-         if (spiloop>0x0F)
+         if (spiloop>0x2F)
          {
             spiloop=0;
-         setSPI_Teensy();
+            setSPI_Teensy();
+            
+            _delay_us(10);
+            setDAC();
+            _delay_us(10);
+            getADC();
+            _delay_us(10);
+
+ 
          }
          
-         //_delay_us(10);
-         setDAC();
+ 
+         
+         
       }
+      
+      if (updateOK & (1<<UPDATE_DISP))
+      {
+         OSZI_A_TOGG;
+         updateOK &= ~(1<<UPDATE_DISP);
+         lcd_gotoxy(0,1);
+         lcd_putc('L');
+         lcd_puthex(spi_txbuffer[2]);
+         lcd_putc(' ');
+         lcd_putc('H');
+         lcd_puthex(spi_txbuffer[3]);
+        
+         
+         lcd_gotoxy(10,1);
+         lcd_putc('L');
+         lcd_puthex(adc_L);
+         lcd_putc(' ');
+         lcd_putc('H');
+         lcd_puthex(adc_H);
+
+         lcd_gotoxy(0,0);
+         lcd_putint16(spi_txbuffer[2] | (spi_txbuffer[3]<<8));
+
+         lcd_gotoxy(10,0);
+         lcd_putint16((adc_L | (adc_H<<8))>>2);
+
+      }
+      
       
 		loopCount0 ++;
 		//_delay_ms(2);
@@ -404,17 +463,17 @@ int main (void)
            //    _delay_us(2);
            //    setDAC();
                
-               
+               /*
                lcd_gotoxy(0,1);
                lcd_puthex(spi_txbuffer[2]);
                lcd_puthex(spi_txbuffer[3]);
                lcd_putc(' ');
-
+                */
               // lcd_puthex(rot_loopcount_H);
               // lcd_puthex(rot_control);
                //_delay_us(20);
       
-               
+              /*
                
                lcd_gotoxy(0,0);
                lcd_puts("in");
@@ -431,7 +490,7 @@ int main (void)
                lcd_putc(' ');
                lcd_puthex(spi_rxbuffer[4]);
                lcd_putc('*');
-              
+              */
                for (i=0;i < 8;i++)
                {
                 //  lcd_puthex(spi_rxbuffer[i]);
